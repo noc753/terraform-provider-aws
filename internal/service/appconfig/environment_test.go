@@ -165,6 +165,53 @@ func TestAccAppConfigEnvironment_updateDescription(t *testing.T) {
 	})
 }
 
+func TestAccAppConfigEnvironment_deletionProtectionCheck(t *testing.T) {
+	ctx := acctest.Context(t)
+	rName := acctest.RandomWithPrefix(t, acctest.ResourcePrefix)
+	resourceName := "aws_appconfig_environment.test"
+
+	acctest.ParallelTest(ctx, t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(ctx, t) },
+		ErrorCheck:               acctest.ErrorCheck(t, names.AppConfigServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckEnvironmentDestroy(ctx, t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEnvironmentConfig_deletionProtectionCheck(rName, "BYPASS"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckEnvironmentExists(ctx, t, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "deletion_protection_check", "BYPASS"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"deletion_protection_check"},
+			},
+			{
+				Config: testAccEnvironmentConfig_deletionProtectionCheck(rName, "APPLY"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckEnvironmentExists(ctx, t, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "deletion_protection_check", "APPLY"),
+				),
+			},
+			{
+				Config: testAccEnvironmentConfig_deletionProtectionCheck(rName, "BYPASS"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckEnvironmentExists(ctx, t, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "deletion_protection_check", "BYPASS"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAppConfigEnvironment_monitors(t *testing.T) {
 	ctx := acctest.Context(t)
 	rName := acctest.RandomWithPrefix(t, acctest.ResourcePrefix)
@@ -417,6 +464,16 @@ resource "aws_appconfig_environment" "test" {
   application_id = aws_appconfig_application.test.id
 }
 `, rName, description))
+}
+
+func testAccEnvironmentConfig_deletionProtectionCheck(rName, deletionProtectionCheck string) string {
+	return acctest.ConfigCompose(testAccApplicationConfig_name(rName), fmt.Sprintf(`
+resource "aws_appconfig_environment" "test" {
+  name                      = %[1]q
+  application_id            = aws_appconfig_application.test.id
+  deletion_protection_check = %[2]q
+}
+`, rName, deletionProtectionCheck))
 }
 
 func testAccEnvironmentConfig_monitors(rName string, count int) string {
