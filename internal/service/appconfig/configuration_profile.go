@@ -72,6 +72,11 @@ func resourceConfigurationProfile() *schema.Resource {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
+				"deletion_protection_check": {
+					Type:             schema.TypeString,
+					Optional:         true,
+					ValidateDiagFunc: enum.Validate[awstypes.DeletionProtectionCheck](),
+				},
 				names.AttrDescription: {
 					Type:         schema.TypeString,
 					Optional:     true,
@@ -223,7 +228,7 @@ func resourceConfigurationProfileUpdate(ctx context.Context, d *schema.ResourceD
 	var diags diag.Diagnostics
 	conn := meta.(*conns.AWSClient).AppConfigClient(ctx)
 
-	if d.HasChangesExcept(names.AttrTags, names.AttrTagsAll) {
+	if d.HasChangesExcept("deletion_protection_check", names.AttrTags, names.AttrTagsAll) {
 		configurationProfileID, applicationID, err := configurationProfileParseResourceID(d.Id())
 		if err != nil {
 			return sdkdiag.AppendFromErr(diags, err)
@@ -278,6 +283,11 @@ func resourceConfigurationProfileDelete(ctx context.Context, d *schema.ResourceD
 		ApplicationId:          aws.String(applicationID),
 		ConfigurationProfileId: aws.String(configurationProfileID),
 	}
+
+	if v, ok := d.GetOk("deletion_protection_check"); ok {
+		input.DeletionProtectionCheck = awstypes.DeletionProtectionCheck(v.(string))
+	}
+
 	_, err = conn.DeleteConfigurationProfile(ctx, &input)
 
 	if errs.IsA[*awstypes.ResourceNotFoundException](err) {
