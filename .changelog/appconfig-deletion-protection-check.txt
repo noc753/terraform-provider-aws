@@ -1,0 +1,7 @@
+```release-note:enhancement
+resource/aws_appconfig_configuration_profile: Add `deletion_protection_check` argument
+```
+
+```release-note:enhancement
+resource/aws_appconfig_environment: Add `deletion_protection_check` argument
+```

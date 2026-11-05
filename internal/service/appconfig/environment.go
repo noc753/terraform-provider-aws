@@ -65,6 +65,10 @@ func (r *environmentResource) Schema(ctx context.Context, request resource.Schem
 				},
 			},
 			names.AttrARN: framework.ARNAttributeComputedOnly(),
+			"deletion_protection_check": schema.StringAttribute{
+				CustomType: fwtypes.StringEnumType[awstypes.DeletionProtectionCheck](),
+				Optional:   true,
+			},
 			names.AttrDescription: schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -248,8 +252,9 @@ func (r *environmentResource) Delete(ctx context.Context, request resource.Delet
 		"environment_id":        data.EnvironmentID.ValueString(),
 	})
 	input := appconfig.DeleteEnvironmentInput{
-		ApplicationId: fwflex.StringFromFramework(ctx, data.ApplicationID),
-		EnvironmentId: fwflex.StringFromFramework(ctx, data.EnvironmentID),
+		ApplicationId:           fwflex.StringFromFramework(ctx, data.ApplicationID),
+		DeletionProtectionCheck: data.DeletionProtectionCheck.ValueEnum(),
+		EnvironmentId:           fwflex.StringFromFramework(ctx, data.EnvironmentID),
 	}
 	_, err := conn.DeleteEnvironment(ctx, &input)
 
@@ -314,16 +319,17 @@ func findEnvironment(ctx context.Context, conn *appconfig.Client, input *appconf
 
 type environmentResourceModel struct {
 	framework.WithRegionModel
-	ApplicationID types.String                                 `tfsdk:"application_id"`
-	ARN           types.String                                 `tfsdk:"arn"`
-	Description   types.String                                 `tfsdk:"description"`
-	EnvironmentID types.String                                 `tfsdk:"environment_id"`
-	ID            types.String                                 `tfsdk:"id"`
-	Monitors      fwtypes.SetNestedObjectValueOf[monitorModel] `tfsdk:"monitor"`
-	Name          types.String                                 `tfsdk:"name"`
-	State         types.String                                 `tfsdk:"state"`
-	Tags          tftags.Map                                   `tfsdk:"tags"`
-	TagsAll       tftags.Map                                   `tfsdk:"tags_all"`
+	ApplicationID           types.String                                         `tfsdk:"application_id"`
+	ARN                     types.String                                         `tfsdk:"arn"`
+	DeletionProtectionCheck fwtypes.StringEnum[awstypes.DeletionProtectionCheck] `tfsdk:"deletion_protection_check" autoflex:"-"`
+	Description             types.String                                         `tfsdk:"description"`
+	EnvironmentID           types.String                                         `tfsdk:"environment_id"`
+	ID                      types.String                                         `tfsdk:"id"`
+	Monitors                fwtypes.SetNestedObjectValueOf[monitorModel]         `tfsdk:"monitor"`
+	Name                    types.String                                         `tfsdk:"name"`
+	State                   types.String                                         `tfsdk:"state"`
+	Tags                    tftags.Map                                           `tfsdk:"tags"`
+	TagsAll                 tftags.Map                                           `tfsdk:"tags_all"`
 }
 
 func (model *environmentResourceModel) InitFromID(ctx context.Context) error {

@@ -310,6 +310,53 @@ func TestAccAppConfigConfigurationProfile_updateDescription(t *testing.T) {
 	})
 }
 
+func TestAccAppConfigConfigurationProfile_deletionProtectionCheck(t *testing.T) {
+	ctx := acctest.Context(t)
+	rName := acctest.RandomWithPrefix(t, acctest.ResourcePrefix)
+	resourceName := "aws_appconfig_configuration_profile.test"
+
+	acctest.ParallelTest(ctx, t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(ctx, t) },
+		ErrorCheck:               acctest.ErrorCheck(t, names.AppConfigServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckConfigurationProfileDestroy(ctx, t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfigurationProfileConfig_deletionProtectionCheck(rName, "BYPASS"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckConfigurationProfileExists(ctx, t, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "deletion_protection_check", "BYPASS"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"deletion_protection_check"},
+			},
+			{
+				Config: testAccConfigurationProfileConfig_deletionProtectionCheck(rName, "APPLY"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckConfigurationProfileExists(ctx, t, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "deletion_protection_check", "APPLY"),
+				),
+			},
+			{
+				Config: testAccConfigurationProfileConfig_deletionProtectionCheck(rName, "BYPASS"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckConfigurationProfileExists(ctx, t, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "deletion_protection_check", "BYPASS"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckConfigurationProfileDestroy(ctx context.Context, t *testing.T) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := acctest.ProviderMeta(ctx, t).AppConfigClient(ctx)
@@ -398,6 +445,19 @@ resource "aws_appconfig_configuration_profile" "test" {
   location_uri   = "hosted"
 }
 `, rName, description))
+}
+
+func testAccConfigurationProfileConfig_deletionProtectionCheck(rName, deletionProtectionCheck string) string {
+	return acctest.ConfigCompose(
+		testAccApplicationConfig_name(rName),
+		fmt.Sprintf(`
+resource "aws_appconfig_configuration_profile" "test" {
+  application_id            = aws_appconfig_application.test.id
+  name                      = %[1]q
+  location_uri              = "hosted"
+  deletion_protection_check = %[2]q
+}
+`, rName, deletionProtectionCheck))
 }
 
 func testAccConfigurationProfileConfig_validatorJSON(rName string) string {

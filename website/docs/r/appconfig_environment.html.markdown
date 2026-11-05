@@ -43,6 +43,7 @@ resource "aws_appconfig_application" "example" {
 This resource supports the following arguments:
 
 * `application_id` - (Required, Forces new resource) AppConfig application ID. Must be between 4 and 7 characters in length.
+* `deletion_protection_check` - (Optional) Deletion protection check to perform when deleting the environment. Valid values: `ACCOUNT_DEFAULT`, `APPLY`, `BYPASS`. `ACCOUNT_DEFAULT` uses the account's deletion protection setting, `APPLY` performs the check even if deletion protection is disabled for the account, and `BYPASS` skips the check. If not set, the account's deletion protection setting is used. This configuration must be applied separately before attempting to delete the resource to have the desired behavior. See [Deletion protection](https://docs.aws.amazon.com/appconfig/latest/userguide/deletion-protection.html) in the AWS AppConfig User Guide.
 * `description` - (Optional) Description of the environment. Can be at most 1024 characters.
 * `monitor` - (Optional) Set of Amazon CloudWatch alarms to monitor during the deployment process. Maximum of 5. See [Monitor](#monitor-block) below for more details.
 * `name` - (Required) Name for the environment. Must be between 1 and 64 characters in length.
